@@ -1,0 +1,24 @@
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-production-route53
+spec:
+  acme:
+    email: rhpds-admins@redhat.com
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      # Secret resource that will be used to store the account's private key.
+      name: cluster-issuer-le-production
+    solvers:
+    - selector:
+        dnsZones:
+        - <PATCH_ME>
+      dns01:
+        route53:
+          region: <PATCH_ME>
+          hostedZoneID: <PATCH_ME>
+          accessKeyID: <PATCH_ME>
+          secretAccessKeySecretRef:
+            name: aws-secret-access-key
+            key: secret-access-key
