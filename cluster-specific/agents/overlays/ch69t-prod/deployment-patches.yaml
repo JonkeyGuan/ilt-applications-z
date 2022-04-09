@@ -1,0 +1,11 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agents
+  namespace: agents
+spec:
+  template:
+    metadata:
+      annotations:
+        vault.hashicorp.com/auth-path: "auth/ch69t-prod"
