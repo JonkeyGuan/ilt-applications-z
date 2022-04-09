@@ -1,0 +1,7 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: acm-hibernator
+  annotations:
+    openshift.io/display-name: Red Hat Advanced Cluster Management Hibernator

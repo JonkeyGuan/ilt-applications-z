@@ -1,0 +1,27 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: hibernate-clusters
+  namespace: acm-hibernator
+spec:
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - command:
+            - ./action
+            env:
+            - name: TAKE_ACTION
+              value: Hibernating
+            - name: OPT_IN
+              value: "false"
+            image: quay.io/gpte-devops-automation/hibernation-curator:v4.9
+            imagePullPolicy: IfNotPresent
+            name: worker
+          restartPolicy: OnFailure
+          serviceAccountName: hibernator
+  # Run Every day at 23:00 UTC (19:00 EDT)
+  schedule: 00 23 * * *
+  suspend: false

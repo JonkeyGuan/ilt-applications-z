@@ -1,0 +1,27 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: resume-clusters
+  namespace: acm-hibernator
+spec:
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - command:
+            - ./action
+            env:
+            - name: TAKE_ACTION
+              value: Running
+            - name: OPT_IN
+              value: "false"
+            image: quay.io/gpte-devops-automation/hibernation-curator:v4.9
+            imagePullPolicy: IfNotPresent
+            name: worker
+          restartPolicy: OnFailure
+          serviceAccountName: hibernator
+  # Run Every Monday-Friday at 12:00 UTC (08:00 EDT)
+  schedule: 00 12 * * 1-5
+  suspend: false
