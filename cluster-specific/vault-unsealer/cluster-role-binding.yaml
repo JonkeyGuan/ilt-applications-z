@@ -1,0 +1,12 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: vault-unsealer
+roleRef:
+  kind: ClusterRole
+  name: vault-unsealer
+subjects:
+- kind: ServiceAccount
+  name: vault-unsealer
+  namespace: vault

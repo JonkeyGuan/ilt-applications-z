@@ -1,0 +1,62 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vault-unsealer
+  namespace: vault
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          activeDeadlineSeconds: 30
+          containers:
+          - name: unseal-vault
+            image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+            imagePullPolicy: Always
+            envFrom:
+            - secretRef:
+                name: vault-unseal-keys
+            command:
+            - /bin/bash
+            - -c
+            - |
+              echo "=================================================================="
+              echo "Vault Unsealer"
+              echo "=================================================================="
+
+              echo "Getting number of vault pods..."
+              VAULTS=$(oc get statefulset vault -o jsonpath="{.spec.replicas}")
+              echo "Found ${VAULTS} desired Vault replicas."
+              echo "=================================================================="
+
+              echo "Checking if any vault pods are sealed."
+              # Check all three vault pods (vault-0 - vault-xx)
+              HIGHPODNUMBER=$(( VAULTS-1 ))
+              for VAULTNUMBER in $(seq 0 ${HIGHPODNUMBER}); do
+                echo "Checking vault pod vault-${VAULTNUMBER}."
+                # Check if vault-${VAULTNUMBER} is sealed
+                if oc rsh vault-${VAULTNUMBER} vault status >/dev/null; then
+                  echo "  vault-${VAULTNUMBER} seems OK. Moving on."
+                else
+                  echo "  vault-${VAULTNUMBER} appears to be sealed. Unsealing."
+                  oc rsh vault-${VAULTNUMBER} vault operator unseal ${VAULT_UNSEALKEY_2} >/dev/null
+                  oc rsh vault-${VAULTNUMBER} vault operator unseal ${VAULT_UNSEALKEY_3} >/dev/null
+                  oc rsh vault-${VAULTNUMBER} vault operator unseal ${VAULT_UNSEALKEY_1} >/dev/null
+                fi
+              done
+
+              echo "=================================================================="
+              echo "Vault Unsealer finished"
+              echo "=================================================================="
+
+          dnsPolicy: ClusterFirst
+          restartPolicy: OnFailure
+          serviceAccountName: vault-unsealer
+          terminationGracePeriodSeconds: 30
+  schedule: '*/5 * * * *'
+  startingDeadlineSeconds: 60
+  successfulJobsHistoryLimit: 2
