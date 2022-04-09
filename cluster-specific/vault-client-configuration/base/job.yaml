@@ -1,0 +1,47 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: setup-vault-client
+  namespace: vault-client
+spec:
+  backoffLimit: 0
+  completions: 1
+  parallelism: 1
+  template:
+    spec:
+      containers:
+      - name: setup-vault-client
+        image: quay.io/gpte-devops-automation/ocvault:1.9.0
+        imagePullPolicy: Always
+        envFrom:
+        - secretRef:
+            name: vault-token
+        - secretRef:
+            name: cluster-names
+        command:
+        - /bin/bash
+        - -c
+        - |
+          # Set up Vault Client
+          # Remove extra CR/LF from the token
+          export VAULT_TOKEN=$(echo ${VAULT_TOKEN} | tr --delete '\n' )
+          export VAULT_ADDR=$(echo ${VAULT_ADDR} | tr --delete '\n' )
+          echo "Cluster Name: ${CLUSTER_NAME}"
+          echo "Cluster Domain: ${CLUSTER_DOMAIN}"
+          echo "Token: ${VAULT_TOKEN}"
+          echo "Vault ADDR: ${VAULT_ADDR}"
+          echo ""
+          echo "Setting up Vault Client for cluster ..."
+          echo "******************************************************"
+
+          vault write auth/${CLUSTER_NAME}/config                 issuer=https://kubernetes.default.svc                 token_reviewer_jwt=@/var/run/secrets/kubernetes.io/serviceaccount/token                 kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt                 kubernetes_host=https://api.${CLUSTER_NAME}.${CLUSTER_DOMAIN}:6443
+
+          echo "******************************************************"
+          echo "Done. Returncode: $?"
+          echo "******************************************************"
+
+      dnsPolicy: ClusterFirst
+      restartPolicy: OnFailure
+      serviceAccountName: vault-tokenreview
+      terminationGracePeriodSeconds: 30
